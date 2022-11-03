@@ -25,7 +25,9 @@ This plugin supports all languages with tree-sitter grammar available.
 
 ## Features
 
-TBD (screencast)
+
+https://user-images.githubusercontent.com/65551246/199737488-a1ff7c87-638d-4854-bf0c-1373301fcbab.mp4
+
 
 The plugin is not bundled with any default mappings, you should assign your own keys for them instead. Here are all the current available mappings.
 
