@@ -11,6 +11,7 @@ local state = {
   au_id = nil,
   winnr = nil,
   visual_mode = nil,
+  jump_set = false,
   expand = false, -- TODO
   selected_node = nil,
   prev_range = nil,
@@ -28,20 +29,24 @@ local function reset_select_state()
   clear_visual_detect_au()
   state.winnr = nil
   state.in_select = false
+  state.jump_set = false
   state.visual_mode = nil
   state.selected_node = nil
   state.prev_range = nil
   state.tscurosr = nil
 end
 
-local function node_filter(node, bufnr)
-  return o.get().filter(node, bufnr) and not utils.is_node_text_empty(node, bufnr)
+local function get_node_filter(bufnr)
+  return function(node)
+    return o.get().filter(node, bufnr) and not utils.is_node_text_empty(node, bufnr)
+  end
 end
 
 local function sync_select_state(winnr, range)
   winnr = winnr or vim.api.nvim_get_current_win()
   local bufnr = vim.api.nvim_win_get_buf(winnr)
   range = range or state.prev_range or utils.get_cursor_range(winnr)
+
   if
     winnr == state.winnr
     and state.tscurosr
@@ -51,7 +56,7 @@ local function sync_select_state(winnr, range)
   end
   local node = utils.get_node_for_range(winnr, range)
   local parser = utils.get_parser(vim.api.nvim_win_get_buf(winnr))
-  local tcurosr = TSCursor:new(node, bufnr, parser, node_filter)
+  local tcurosr = TSCursor:new(node, bufnr, parser, get_node_filter(bufnr))
 
   -- sift up for node with same range
   -- TODO: not much friendly to child navigation
@@ -59,11 +64,14 @@ local function sync_select_state(winnr, range)
     node = tcurosr:to_parent()
   end
 
-  state.selected_node = node
-  state.tscurosr = tcurosr
-  state.winnr = winnr
+  -- only update state if in selecet
+  if state.in_select then
+    state.selected_node = node
+    state.tscurosr = tcurosr
+    state.winnr = winnr
+  end
 
-  return state.tscurosr
+  return tcurosr
 end
 
 local function window_range(winnr)
@@ -78,7 +86,7 @@ function M.hint_parents(winnr, _, cb)
   local nodes = {}
   local cur = utils.get_node_at_cursor(winnr)
   local parser = utils.get_parser(vim.api.nvim_win_get_buf(winnr))
-  local tcursor = TSCursor:new(cur, bufnr, parser, node_filter)
+  local tcursor = TSCursor:new(cur, bufnr, parser, get_node_filter(bufnr))
   local top, bot = window_range(winnr)
 
   while cur and (cur:start() >= top or cur:end_() <= bot) do
@@ -119,10 +127,6 @@ local function operator_select(get_select, async)
 end
 
 local function wrap_select_mapping(get_select, name, async)
-  if vim.api.nvim_get_mode().mode == "o" then
-    pcall(operator_select, get_select, async)
-  end
-
   local function exported_mapping()
     local winnr = state.winnr
 
@@ -137,9 +141,11 @@ local function wrap_select_mapping(get_select, name, async)
 
     local bufnr = vim.api.nvim_win_get_buf(winnr)
 
-    if not state.in_select then
-      state.in_select = true
-      vim.cmd("normal! m'") -- set jumplist
+    if not state.jump_set then
+      state.jump_set = true
+      if o.get().set_jump then
+        vim.cmd("normal! m'") -- set jumplist
+      end
     end
 
     -- set prev_range to rebuild tscursor
@@ -165,17 +171,25 @@ local function wrap_select_mapping(get_select, name, async)
     end
   end
 
-  local export_name = "_ts_visual_select_" .. name
+  local export_name = "_tsteer_export_" .. name
   M[export_name] = function()
-    local ok = pcall(exported_mapping)
+    local ok, err = pcall(exported_mapping)
     if not ok then
+      error(err)
       reset_select_state()
     end
   end
 
   return function()
+    local mode = vim.api.nvim_get_mode().mode
+    if string.find(mode, "o") ~= nil then
+      return pcall(operator_select, get_select, async)
+    end
+
     state.winnr = vim.api.nvim_get_current_win()
-    state.visual_mode = vim.api.nvim_get_mode().mode
+    state.visual_mode = mode
+    state.in_select = true
+
     clear_visual_detect_au()
     -- TODO: we must exit visual mode to get the last selection range, and that's
     -- why an autocmd is used to determine whether two visual bindings are 'successive'.
@@ -185,7 +199,8 @@ local function wrap_select_mapping(get_select, name, async)
 end
 
 function M.get_unit(winnr, range, reverse)
-  local tscursor = sync_select_state(winnr, range)
+  local tscursor = sync_select_state(winnr, range or utils.get_cursor_range(winnr))
+  local bufnr = vim.api.nvim_win_get_buf(winnr or vim.api.nvim_get_current_win())
   local function same_scope(a, b)
     if reverse then
       return a:end_() == b:end_()
@@ -194,8 +209,11 @@ function M.get_unit(winnr, range, reverse)
     end
   end
   while
-    (tscursor:deref() and tscursor:parent() and same_scope(tscursor:deref(), tscursor:parent()))
-    or not tscursor:deref():named()
+    tscursor:deref()
+    and (
+      (tscursor:parent() and same_scope(tscursor:deref(), tscursor:parent()))
+      or not o.get().filter(tscursor:deref(), bufnr)
+    )
   do
     tscursor:to_parent()
   end
@@ -260,7 +278,7 @@ M.swap_next_sibling = wrap_select_mapping(function(winnr)
     local _, next_range = utils.swap_nodes(tcurosr:deref(), next, vim.api.nvim_win_get_buf(winnr))
     return next_range
   end
-end)
+end, "swap_next_sibling")
 
 M.swap_prev_sibling = wrap_select_mapping(function(winnr)
   winnr = winnr or vim.api.nvim_get_current_win()
@@ -270,19 +288,19 @@ M.swap_prev_sibling = wrap_select_mapping(function(winnr)
     local _, next_range = utils.swap_nodes(tcurosr:deref(), prev, vim.api.nvim_win_get_buf(winnr))
     return next_range
   end
-end)
+end, "swap_prev_sibling")
 
-M.select_unit = wrap_select_mapping(M.get_unit, "get_unit", false)
+M.select_unit = wrap_select_mapping(M.get_unit, "get_unit")
 
 M.select_unit_reverse = wrap_select_mapping(function()
   return M.get_unit(0, nil, true)
-end, "get_unit_reverse", false)
+end, "get_unit_reverse")
 
-M.select_unit_incremental = wrap_select_mapping(M.get_unit_incremental, "get_unit_incremental", false)
+M.select_unit_incremental = wrap_select_mapping(M.get_unit_incremental, "get_unit_incremental")
 
 M.select_unit_incremental_reverse = wrap_select_mapping(function(winnr, range)
   return M.get_unit_incremental(winnr, range, true)
-end, "get_unit_reverse", false)
+end, "get_unit_reverse")
 
 M.select_next_sibling = wrap_select_mapping(M.get_next_sibling, "next_sibling")
 
@@ -298,20 +316,45 @@ M.select_last_sibling = wrap_select_mapping(M.get_last_sibling, "last_sibling")
 
 M.hint_parents = wrap_select_mapping(M.hint_parents, "hint_parents", true)
 
-function M.goto_unit_start()
-  local node = M.get_unit(0, nil, true)
-  if node then
-    local r, c = node:start()
-    vim.api.nvim_win_set_cursor(0, { r + 1, c })
+local function goto_unit_pos_incremental(winnr, backward)
+  local win_cursor = vim.api.nvim_win_get_cursor(winnr)
+  local node = M.get_unit(winnr)
+  local row, col = node:end_()
+  if backward then
+    row, col = node:start()
   end
+
+  while node and row == win_cursor[1] - 1 and col == win_cursor[2] do
+    node = node:parent()
+    if node then
+      row, col = node:start()
+    end
+  end
+  node = node and M.get_unit(winnr, utils.node_range(node))
+  if not node then
+    return
+  end
+
+  row, col = node:end_()
+  if backward then
+    row, col = node:start()
+  end
+
+  if not backward and col == 0 then
+    row = row - 1
+    col = utils.line_cols(vim.api.nvim_win_get_buf(winnr), row)
+  end
+
+  vim.cmd("normal! m'") -- set jumplist
+  vim.api.nvim_win_set_cursor(0, { row + 1, col })
+end
+
+function M.goto_unit_start()
+  goto_unit_pos_incremental(0, true)
 end
 
 function M.goto_unit_end()
-  local node = M.get_unit(0)
-  if node then
-    local r, c = node:end_()
-    vim.api.nvim_win_set_cursor(0, { r + 1, c })
-  end
+  goto_unit_pos_incremental(0, false)
 end
 
 M.setup = o.setup

@@ -7,6 +7,7 @@ local config = {
   operator_outer = function()
     return vim.v.operator == "d"
   end,
+  set_jump = true,
   hint_provider = "leap",
 }
 
@@ -20,6 +21,9 @@ function M.setup(user_conf)
   end
   if user_conf.operator_outer then
     config.operator_outer = user_conf.operator_outer
+  end
+  if user_conf.set_jump ~= nil then
+    config.set_jump = user_conf.set_jump
   end
   if user_conf.hint_provider then
     config.hint_provider = user_conf.hint_provider
