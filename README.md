@@ -25,9 +25,7 @@ This plugin supports all languages with tree-sitter grammar available.
 
 ## Features
 
-
 https://user-images.githubusercontent.com/65551246/199737488-a1ff7c87-638d-4854-bf0c-1373301fcbab.mp4
-
 
 The plugin is not bundled with any default mappings, you should assign your own keys for them instead. Here are all the current available mappings.
 
@@ -120,3 +118,13 @@ require("nvim-treesitter.configs").setup({
 ```
 
 Otherwise, directly creating global mappings is also feasible, but there might be errors if the current buffer do not have tree-sitter parser attached.
+
+## Credits
+
+- [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter)
+- [nvim-treehopper](https://github.com/mfussenegger/nvim-treehopper)
+- [treesitter-unit](https://github.com/David-Kunz/treesitter-unit)
+- [syntax-tree-surfer](https://github.com/ziontee113/syntax-tree-surfer)
+- [tree-climber.nvim](https://github.com/drybalka/tree-climber.nvim)
+- [leap.nvim](https://github.com/ggandor/leap.nvim)
+- [hop.nvim](https://github.com/phaazon/hop.nvim)

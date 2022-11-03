@@ -175,15 +175,23 @@ local function wrap_select_mapping(get_select, name, async)
   M[export_name] = function()
     local ok, err = pcall(exported_mapping)
     if not ok then
-      error(err)
       reset_select_state()
+      vim.schedule(function()
+        vim.notify("[nvim-tsteer]: error " .. err, vim.log.levels.ERROR)
+      end)
     end
   end
 
   return function()
     local mode = vim.api.nvim_get_mode().mode
     if string.find(mode, "o") ~= nil then
-      return pcall(operator_select, get_select, async)
+      local ok, err = pcall(operator_select, get_select, async)
+      if not ok then
+        vim.schedule(function()
+          vim.notify("[nvim-tsteer]: error " .. err, vim.log.levels.ERROR)
+        end)
+      end
+      return
     end
 
     state.winnr = vim.api.nvim_get_current_win()
