@@ -242,8 +242,8 @@ function M.get_unit_incremental(winnr, range, reverse)
   return node
 end
 
-function M.get_parent(winnr)
-  local tcurosr = sync_select_state(winnr)
+function M.get_parent(winnr, range)
+  local tcurosr = sync_select_state(winnr, range)
   local cur = tcurosr:safe_to_parent()
   while cur and tcurosr:parent() and utils.node_contains(cur, tcurosr:parent()) do
     cur = tcurosr:to_parent()
@@ -251,36 +251,36 @@ function M.get_parent(winnr)
   return cur
 end
 
-function M.get_prev_sibling(winnr)
-  local tcurosr = sync_select_state(winnr)
+function M.get_prev_sibling(winnr, range)
+  local tcurosr = sync_select_state(winnr, range)
   return tcurosr:safe_to_prev_sibling()
 end
 
-function M.get_next_sibling(winnr)
-  local tcurosr = sync_select_state(winnr)
+function M.get_next_sibling(winnr, range)
+  local tcurosr = sync_select_state(winnr, range)
   return tcurosr:safe_to_next_sibling()
 end
 
-function M.get_first_sibling(winnr)
-  local tcurosr = sync_select_state(winnr)
+function M.get_first_sibling(winnr, range)
+  local tcurosr = sync_select_state(winnr, range)
   return tcurosr:safe_to_first_sibling()
 end
 
-function M.get_last_sibling(winnr)
-  local tcurosr = sync_select_state(winnr)
+function M.get_last_sibling(winnr, range)
+  local tcurosr = sync_select_state(winnr, range)
   return tcurosr:safe_to_last_sibling()
 end
 
-function M.get_first_child(winnr)
-  local tcurosr = sync_select_state(winnr)
+function M.get_first_child(winnr, range)
+  local tcurosr = sync_select_state(winnr, range)
   return tcurosr:safe_to_child()
 end
 
 ---Available mappings
 
-M.swap_next_sibling = wrap_select_mapping(function(winnr)
+M.swap_next_sibling = wrap_select_mapping(function(winnr, range)
   winnr = winnr or vim.api.nvim_get_current_win()
-  local tcurosr = sync_select_state(winnr)
+  local tcurosr = sync_select_state(winnr, range)
   local next = tcurosr:next_sibling()
   if next then
     local _, next_range = utils.swap_nodes(tcurosr:deref(), next, vim.api.nvim_win_get_buf(winnr))
@@ -288,9 +288,9 @@ M.swap_next_sibling = wrap_select_mapping(function(winnr)
   end
 end, "swap_next_sibling")
 
-M.swap_prev_sibling = wrap_select_mapping(function(winnr)
+M.swap_prev_sibling = wrap_select_mapping(function(winnr, range)
   winnr = winnr or vim.api.nvim_get_current_win()
-  local tcurosr = sync_select_state(winnr)
+  local tcurosr = sync_select_state(winnr, range)
   local prev = tcurosr:prev_sibling()
   if prev then
     local _, next_range = utils.swap_nodes(tcurosr:deref(), prev, vim.api.nvim_win_get_buf(winnr))

@@ -41,6 +41,9 @@ function M.get_node_for_range(winnr, range, named)
   if not root_lang_tree then
     return
   end
+  if not root_lang_tree:is_valid() then
+    root_lang_tree:parse()
+  end
 
   local min_node
   root_lang_tree:for_each_tree(function(tree)
