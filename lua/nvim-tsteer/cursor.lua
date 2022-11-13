@@ -6,32 +6,36 @@ local function always_true()
 end
 
 local function create_cross_tree_stack(node, bufnr, parser, filter)
-  local nrange = utils.node_range(node, false)
+  local nrange = utils.node_range(node)
 
   local trees = {}
   parser:for_each_tree(function(tree, lang_tree)
     local root = tree:root()
+    if not utils.node_contains(root, node) then
+      return
+    end
+
     local min_capture_node = root:descendant_for_range(nrange[1][1], nrange[1][2], nrange[2][1], nrange[2][2])
 
     while min_capture_node and not filter(min_capture_node, bufnr) do
       min_capture_node = min_capture_node:parent()
     end
     if min_capture_node and utils.node_contains(min_capture_node, node) then
-      table.insert(trees, {
+      trees[#trees + 1] = {
         lang = lang_tree:lang(),
         tstree = tree,
         min_capture_node = min_capture_node,
-      })
+      }
     end
   end)
 
   table.sort(trees, function(a, b)
-    local is_same = utils.node_contains(a.min_capture_node, b.min_capture_node)
-      and utils.node_contains(b.min_capture_node, a.min_capture_node)
+    local is_same = utils.node_contains(a.tstree:root(), b.tstree:root())
+      and utils.node_contains(b.tstree:root(), a.tstree:root())
     if is_same then
-      return utils.node_contains(a.tstree:root(), b.tstree:root())
+      return utils.node_contains(a.min_capture_node, b.min_capture_node)
     end
-    return utils.node_contains(a.min_capture_node, b.min_capture_node)
+    return utils.node_contains(a.tstree:root(), b.tstree:root())
   end)
 
   return trees

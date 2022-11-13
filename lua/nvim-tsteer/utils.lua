@@ -144,13 +144,27 @@ function M.select_node(winnr, node, outer, selection_mode, expand)
   local bufnr = vim.api.nvim_win_get_buf(winnr)
   local srow, scol, erow, ecol = node:range()
   if outer then
+    local sline = M.buf_line(bufnr, srow)
+    local eline = M.buf_line(bufnr, erow)
+    local nscol = scol
+    local necol = ecol
+
     if scol > 0 then
-      local line = vim.api.nvim_buf_get_lines(bufnr, srow, srow + 1, true)[1]
-      scol = scol - #(line:sub(1, scol):match("%s*$") or "")
+      nscol = scol - #(sline:sub(1, scol):match("%s*$") or "")
     end
-    if ecol < M.line_cols(bufnr, erow) then
-      local line = vim.api.nvim_buf_get_lines(bufnr, erow, erow + 1, true)[1]
-      ecol = ecol + #(line:sub(ecol + 1) or "")
+    if ecol < #eline then
+      necol = ecol + #(eline:sub(ecol + 1):match("^[%s;,]*") or "")
+    end
+
+    if srow ~= erow or #sline == necol - nscol then
+      scol = nscol
+
+      if necol == #eline then
+        erow = erow + 1
+        ecol = 0
+      else
+        ecol = necol
+      end
     end
   end
 
