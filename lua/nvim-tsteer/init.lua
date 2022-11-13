@@ -177,7 +177,7 @@ local function wrap_select_mapping(get_select, name, async)
     if not ok then
       reset_select_state()
       vim.schedule(function()
-        vim.notify("[nvim-tsteer]: error " .. err, vim.log.levels.ERROR)
+        vim.notify("[tsteer]: error " .. err, vim.log.levels.ERROR)
       end)
     end
   end
@@ -188,7 +188,7 @@ local function wrap_select_mapping(get_select, name, async)
       local ok, err = pcall(operator_select, get_select, async)
       if not ok then
         vim.schedule(function()
-          vim.notify("[nvim-tsteer]: error " .. err, vim.log.levels.ERROR)
+          vim.notify("[tsteer]: error " .. err, vim.log.levels.ERROR)
         end)
       end
       return
@@ -218,10 +218,8 @@ function M.get_unit(winnr, range, reverse)
   end
   while
     tscursor:deref()
-    and (
-      (tscursor:parent() and same_scope(tscursor:deref(), tscursor:parent()))
-      or not o.get().filter(tscursor:deref(), bufnr)
-    )
+    and tscursor:parent()
+    and (same_scope(tscursor:deref(), tscursor:parent()) or not o.get().filter(tscursor:deref(), bufnr))
   do
     tscursor:to_parent()
   end
@@ -234,9 +232,14 @@ function M.get_unit_incremental(winnr, range, reverse)
     return
   end
 
+  local bufnr = vim.api.nvim_win_get_buf(winnr)
   local tscursor = sync_select_state(winnr, range)
-  if tscursor:deref() and utils.range_contains(range, utils.node_range(node)) then
-    node = M.get_unit(winnr, utils.node_range(tscursor:to_parent()), reverse)
+  if
+    tscursor:deref()
+    and tscursor:parent()
+    and utils.range_contains(range, utils.node_range_normalized(node, bufnr))
+  then
+    node = M.get_unit(winnr, utils.node_range(tscursor:to_parent()), reverse) or node
   end
 
   return node

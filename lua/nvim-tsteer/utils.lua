@@ -158,13 +158,7 @@ function M.select_node(winnr, node, outer, selection_mode, expand)
 
     if srow ~= erow or #sline == necol - nscol then
       scol = nscol
-
-      if necol == #eline then
-        erow = erow + 1
-        ecol = 0
-      else
-        ecol = necol
-      end
+      ecol = necol
     end
   end
 
@@ -182,10 +176,10 @@ function M.is_node_text_empty(node, bufnr)
 end
 
 function M.node_to_lsp_range_normalized(node, bufnr)
-  local start_line, start_col, end_line, end_col = M.node_range_normalized(node, bufnr)
+  local range = M.node_range_normalized(node, bufnr)
   local rtn = {}
-  rtn.start = { line = start_line, character = start_col }
-  rtn["end"] = { line = end_line, character = end_col + 1 }
+  rtn.start = { line = range[1][1], character = range[1][2] }
+  rtn["end"] = { line = range[2][1], character = range[2][2] + 1 }
   return rtn
 end
 
@@ -272,7 +266,7 @@ function M.node_range_normalized(node, bufnr)
   else
     ecol = ecol - 1
   end
-  return srow, scol, erow, ecol
+  return { { srow, scol }, { erow, ecol } }
 end
 
 function M.node_contains(node1, node2)
