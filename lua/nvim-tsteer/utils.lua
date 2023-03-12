@@ -8,7 +8,7 @@ function M.If(bol, thn, els)
 end
 
 function M.buf_line(bufnr, lnum)
-  return vim.api.nvim_buf_get_lines(bufnr, lnum, lnum + 1, true)[1] or ""
+  return vim.api.nvim_buf_get_lines(bufnr, lnum, lnum + 1, false)[1] or ""
 end
 
 function M.line_cols(bufnr, lnum)
@@ -166,13 +166,8 @@ function M.select_node(winnr, node, outer, selection_mode, expand)
 end
 
 function M.is_node_text_empty(node, bufnr)
-  local text = vim.treesitter.get_node_text(node, bufnr, { concat = false })
-  for _, line in ipairs(text) do
-    if vim.trim(line) ~= "" then
-      return false
-    end
-  end
-  return true
+  local text = vim.treesitter.get_node_text(node, bufnr)
+  return string.match(text, "[^%s]") == nil
 end
 
 function M.node_to_lsp_range_normalized(node, bufnr)

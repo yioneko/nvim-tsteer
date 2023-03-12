@@ -1,7 +1,22 @@
-## Mappings
-
 ```lua
 local tsteer = require("nvim-tsteer")
+tsteer.setup({
+    -- filter selected node
+    filter = function(node, bufnr)
+        -- Example: skip all comment nodes
+        -- return node:type() ~= "comment"
+        return node:named()
+    end,
+    -- whether to set jump list before node selection
+    set_jump = true,
+    -- determine whether to select outer region in operator mapping
+    operator_outer = function()
+        return vim.v.operator == "d"
+    end,
+    -- which hint provider to use for `hint_parents`
+    -- "leap" | "hop"
+    hint_provider = "leap",
+})
 
 vim.keymap.set({ "n", "x", "o" }, "[[", tsteer.goto_unit_start)
 vim.keymap.set({ "n", "x", "o" }, "]]", tsteer.goto_unit_end)
@@ -29,35 +44,3 @@ vim.keymap.set("o", "m", tsteer.hint_parents)
 vim.keymap.set("x", "<M-n>", tsteer.swap_next_sibling, { expr = true })
 vim.keymap.set("x", "<M-p>", tsteer.swap_prev_sibling, { expr = true })
 ```
-
-## Setup
-
-```lua
-require('nvim-tsteer').setup({
-    -- filter selected node
-    filter = function(node, bufnr)
-        -- Example: skip all comment nodes
-        -- return node:type() ~= "comment"
-        return node:named()
-    end,
-    -- whether to set jump list before node selection
-    set_jump = true,
-    -- determine whether to select outer region in operator mapping
-    operator_outer = function()
-        return vim.v.operator == "d"
-    end,
-    -- which hint provider to use for `hint_parents`
-    -- "leap" | "hop"
-    hint_provider = "leap",
-})
-```
-
-## Credits
-
-- [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter)
-- [nvim-treehopper](https://github.com/mfussenegger/nvim-treehopper)
-- [treesitter-unit](https://github.com/David-Kunz/treesitter-unit)
-- [syntax-tree-surfer](https://github.com/ziontee113/syntax-tree-surfer)
-- [tree-climber.nvim](https://github.com/drybalka/tree-climber.nvim)
-- [leap.nvim](https://github.com/ggandor/leap.nvim)
-- [hop.nvim](https://github.com/phaazon/hop.nvim)
