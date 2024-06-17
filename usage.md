@@ -24,23 +24,22 @@ vim.keymap.set({ "n", "x", "o" }, "]]", tsteer.goto_unit_end)
 -- Note that `expr = true` is needed to make visual mode mapping works
 
 -- like `treesitter-unit`, but repeatable to select incrementally
-vim.keymap.set("x", "u", tsteer.select_unit_incremental, { expr = true })
-vim.keymap.set("x", "U", tsteer.select_unit_incremental_reverse, { expr = true })
+vim.keymap.set("x", "u", tsteer.select_unit_incremental)
 vim.keymap.set("o", "u", tsteer.select_unit)
 vim.keymap.set("o", "U", tsteer.select_unit_reverse)
 
-vim.keymap.set("x", "n", tsteer.select_next_sibling, { expr = true })
-vim.keymap.set("x", "p", tsteer.select_prev_sibling, { expr = true })
-vim.keymap.set("x", "P", tsteer.select_parent, { expr = true })
-vim.keymap.set("x", "N", tsteer.select_first_child, { expr = true })
-vim.keymap.set("x", "[n", tsteer.select_first_sibling, { expr = true })
-vim.keymap.set("x", "]n", tsteer.select_last_sibling, { expr = true })
+vim.keymap.set("x", "n", tsteer.select_next_sibling)
+vim.keymap.set("x", "p", tsteer.select_prev_sibling)
+vim.keymap.set("x", "P", tsteer.select_parent)
+vim.keymap.set("x", "N", tsteer.select_first_child)
+vim.keymap.set("x", "[n", tsteer.select_first_sibling)
+vim.keymap.set("x", "]n", tsteer.select_last_sibling)
 
 -- like `nvim-treehopper`, but support different hint providers and injection tree
-vim.keymap.set("x", "m", tsteer.hint_parents, { expr = true })
+vim.keymap.set("x", "m", tsteer.hint_parents)
 vim.keymap.set("o", "m", tsteer.hint_parents)
 
 -- generic node swapping, repeatable
-vim.keymap.set("x", "<M-n>", tsteer.swap_next_sibling, { expr = true })
-vim.keymap.set("x", "<M-p>", tsteer.swap_prev_sibling, { expr = true })
+vim.keymap.set("x", "<M-n>", tsteer.swap_next_sibling)
+vim.keymap.set("x", "<M-p>", tsteer.swap_prev_sibling)
 ```

@@ -1,6 +1,6 @@
 local M = {}
 
-function M.If(bol, thn, els)
+function M.ternary(bol, thn, els)
   if bol then
     return thn
   end
@@ -15,13 +15,13 @@ function M.line_cols(bufnr, lnum)
   return #M.buf_line(bufnr, lnum)
 end
 
-function M.is_visual_mode()
-  return string.match(vim.api.nvim_get_mode().mode, "^[vV]") ~= nil
+function M.is_visual_mode(mode)
+  return string.match(mode or vim.api.nvim_get_mode().mode, "^[vV]") ~= nil
 end
 
 function M.has_treesitter(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
-  return vim._ts_has_language(vim.api.nvim_buf_get_option(bufnr, "filetype"))
+  return vim._ts_has_language(vim.bo[bufnr].filetype)
 end
 
 function M.get_parser(bufnr)
@@ -85,14 +85,11 @@ function M.get_cursor_range(winnr)
   return { cursor, end_cursror }
 end
 
-function M.visual_selection_range(bufnr)
-  bufnr = bufnr or vim.api.nvim_get_current_buf()
-
-  local start_pos = vim.api.nvim_buf_get_mark(bufnr, "<")
-  local end_pos = vim.api.nvim_buf_get_mark(bufnr, ">")
+function M.visual_selection_range(winnr)
+  local start_pos = vim.api.nvim_win_get_cursor(winnr)
+  local end_pos = { vim.fn.line("v", winnr) - 1, vim.fn.col("v", winnr) - 1 }
 
   start_pos[1] = start_pos[1] - 1
-  end_pos[1] = end_pos[1] - 1
 
   if M.pos_cmp(start_pos, end_pos) >= 0 then
     start_pos[2] = start_pos[2] + 1
@@ -105,6 +102,7 @@ end
 
 function M.select_range(winnr, range, selection_mode, expand)
   winnr = winnr or vim.api.nvim_get_current_win()
+  selection_mode = selection_mode or "v"
   local bufnr = vim.api.nvim_win_get_buf(winnr)
   local start_cursor = { range[1][1] + 1, range[1][2] }
   local end_cursor = { range[2][1] + 1, range[2][2] }
@@ -116,14 +114,15 @@ function M.select_range(winnr, range, selection_mode, expand)
     end_cursor[2] = end_cursor[2] - 1
   end
 
-  if selection_mode then
-    local selection_range = M.visual_selection_range(bufnr)
+  local cur_mode = vim.api.nvim_get_mode().mode
+  if M.is_visual_mode(cur_mode) then
+    local selection_range = M.visual_selection_range(winnr)
 
     if expand then
       start_cursor[1][1] = math.min(start_cursor[1][1], selection_range[1][1])
       start_cursor[1][1] = math.min(start_cursor[1][2], selection_range[1][2])
-      end_cursor[2][1] = math.min(end_cursor[2][1], selection_range[2][1])
-      end_cursor[2][2] = math.min(end_cursor[2][2], selection_range[2][2])
+      end_cursor[2][1] = math.max(end_cursor[2][1], selection_range[2][1])
+      end_cursor[2][2] = math.max(end_cursor[2][2], selection_range[2][2])
     end
 
     local cursor = vim.api.nvim_win_get_cursor(winnr)
@@ -134,8 +133,11 @@ function M.select_range(winnr, range, selection_mode, expand)
     end
   end
 
+  if selection_mode ~= cur_mode then
+    vim.api.nvim_cmd({ cmd = "normal", bang = true, args = { selection_mode } }, { output = false })
+  end
   vim.api.nvim_win_set_cursor(winnr, start_cursor)
-  vim.cmd("normal! " .. vim.api.nvim_replace_termcodes(selection_mode or "v", true, true, true))
+  vim.api.nvim_cmd({ cmd = "normal", bang = true, args = { "o" } }, { output = false })
   vim.api.nvim_win_set_cursor(winnr, end_cursor)
 end
 
@@ -209,7 +211,7 @@ function M.swap_nodes(na, nb, bufnr)
 
   local ni = {
     { bi.start.line, bi.start.character },
-    { bi.start.line + drowj, M.If(drowj == 0, bi.start.character + dcolj, bj["end"].character) },
+    { bi.start.line + drowj, M.ternary(drowj == 0, bi.start.character + dcolj, bj["end"].character) },
   }
 
   local nj_start = {
@@ -218,11 +220,11 @@ function M.swap_nodes(na, nb, bufnr)
     --[a
     --    a] ... [b
     -- b],
-    M.If(bi["end"].line == bj.start.line, ni[2][2] + bj.start.character - bi["end"].character, bj.start.character),
+    M.ternary(bi["end"].line == bj.start.line, ni[2][2] + bj.start.character - bi["end"].character, bj.start.character),
   }
   local nj = {
     nj_start,
-    { nj_start[1] + drowi, M.If(drowi == 0, nj_start[2] + dcoli, bi["end"].character) },
+    { nj_start[1] + drowi, M.ternary(drowi == 0, nj_start[2] + dcoli, bi["end"].character) },
   }
 
   if reverted then

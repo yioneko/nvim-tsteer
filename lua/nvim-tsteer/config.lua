@@ -4,6 +4,9 @@ local config = {
   filter = function(node, bufnr)
     return node:named()
   end,
+  unit_break = function(node, bufnr)
+    return node:parent():type() == "block"
+  end,
   operator_outer = function()
     return vim.v.operator == "d"
   end,

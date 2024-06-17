@@ -42,7 +42,7 @@ local function create_cross_tree_stack(node, bufnr, parser, filter)
 end
 
 ---@class TSCursor
----@field node userdata
+---@field node TSNode
 ---@field tree_stack table
 ---@field bufnr integer
 ---@field parser table
@@ -175,13 +175,6 @@ function TSCursor:child(n)
         return child
       end
     end
-    return
-  else
-    -- local tree = find_max_contained_tree(self)
-    -- if tree then
-    --   return tree:root()
-    -- end
-    -- return
   end
 end
 
@@ -220,17 +213,6 @@ local function unchecked_to_child(self, n)
       return
     else
       self.node = nil
-      -- local tree = find_max_contained_tree(self)
-      -- if tree then
-      --   self.tree_stack[#self.tree_stack].min_capture_node = self.node
-      --   self.tree_stack[#self.tree_stack + 1] = {
-      --     tstree = tree,
-      --     min_capture_node = tree:root(), -- meaningless
-      --   }
-      --   self.node = tree:root()
-      -- else
-      --   self.node = nil
-      -- end
     end
   end
 end
